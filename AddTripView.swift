@@ -4,7 +4,7 @@ struct AddTripView: View {
     
     @EnvironmentObject var store: TripsStore
     @Environment(\.dismiss) var dismiss
-    
+    var existingTrip: Trip?
     @State private var selectedCountry = ""
     @State private var cityInput = ""
     @State private var cities: [String] = []
@@ -13,6 +13,20 @@ struct AddTripView: View {
     @State private var endDate = Date()
     
     @State private var notes = ""
+    var isFormValid: Bool {
+        !selectedCountry.isEmpty &&
+        startDate <= endDate
+    }
+     init(existingTrip: Trip? = nil) {
+        self.existingTrip = existingTrip
+        if let trip = existingTrip {
+            _selectedCountry = State(initialValue: trip.country)
+            _cities = State(initialValue: trip.cities)
+            _startDate = State(initialValue: trip.startDate)
+            _endDate = State(initialValue: trip.endDate)
+            _notes = State(initialValue: trip.notes)
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -53,13 +67,13 @@ struct AddTripView: View {
                 }
             }
             
-            .navigationTitle("Nowa podróż")
+            .navigationTitle(existingTrip == nil ? "Nowa podróż" : "Edytuj podróż")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Zapisz") {
                         saveTrip()
                         dismiss()
-                    }
+                    }.disabled(!isFormValid)
                 }
                 
                 ToolbarItem(placement: .cancellationAction) {
@@ -84,23 +98,27 @@ struct AddTripView: View {
             status = .ongoing
         }
         
-        let newTrip = Trip(
-            country: selectedCountry,
-            cities: cities,
-            startDate: startDate,
-            endDate: endDate,
-            status: status,
-            notes: notes,
-            photos: []
-        )
-        
-        store.trips.append(newTrip)
-        
-        // jeśli zakończona → oznacz kraj odwiedzony
-        if status == .completed {
-            if let index = store.countries.firstIndex(where: { $0.name == selectedCountry }) {
-                store.countries[index].visited = true
+         if let old = existingTrip {
+            if let index = store.trips.firstIndex(where: { $0.id == old.id }) {
+                store.trips[index].country = selectedCountry
+                store.trips[index].cities = cities
+                store.trips[index].startDate = startDate
+                store.trips[index].endDate = endDate
+                store.trips[index].notes = notes
+                store.trips[index].status = status
             }
+        } else { 
+            let newTrip = Trip(
+                country: selectedCountry,
+                cities: cities,
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                notes: notes,
+                photos: []
+            )
+            
+            store.trips.append(newTrip)
         }
         
         store.saveTrips()
