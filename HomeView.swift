@@ -3,10 +3,9 @@ import SwiftUI
 struct HomeView: View {
     
     @EnvironmentObject var store: TripsStore
-    @State private var selectedFilter = "Wszystko"
+    @State private var selectedFilter = "Państwa"
     
-    let filters = ["Wszystko", "Kontynenty", "Miasta"]
-    // trzeba dodac fnkcjonalnosc
+    let filters = ["Państwa", "Kontynenty", "Miasta"]
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -20,7 +19,7 @@ struct HomeView: View {
                     
                     filterSection
                     
-                    countriesSection
+                    filteredTripsSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -101,15 +100,11 @@ extension HomeView {
             }
             
             HStack {
-                Text("Europa • Azja • Ameryka Płn.")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                
                 Spacer()
                 
                 Button("Powiększ") {}
                     .font(.caption)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 25)
                     .padding(.vertical, 6)
                     .background(Color.blue.opacity(0.15))
                     .cornerRadius(12)
@@ -126,63 +121,88 @@ extension HomeView {
     
     // filtry
     var filterSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(filters, id: \.self) { filter in
-                    Button {
-                        selectedFilter = filter
-                    } label: {
-                        Text(filter)
-                            .font(.system(size: 15))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(
-                                selectedFilter == filter
-                                ? Color.blue.opacity(0.18)
-                                : Color.gray.opacity(0.15)
-                            )
-                            .foregroundColor(.black)
-                            .cornerRadius(18)
-                    }
-                }
-            }
-        }
+       Picker("Filtr", selection: $selectedFilter) {
+           Text("Państwa").tag("Państwa")
+           Text("Kontynenty").tag("Kontynenty")
+           Text("Miasta").tag("Miasta")
     }
-    
-    // kraje odwiedzone 
-    var countriesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Twoje kraje")
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+    }
+   
+    var filteredTripsSection: some View {
+        
+        let completed = store.trips.filter { $0.status == .completed }
+        
+        return VStack(alignment: .leading, spacing: 20) {
+            
+            Text("Zakończone podróże")
                 .font(.system(size: 22, weight: .bold))
                 .padding(.leading, 4)
             
-            ForEach(store.countries.filter { $0.visited }) { country in
-                HStack(spacing: 14) {
-                    
-                    Text(country.flag)
-                        .font(.system(size: 40))
-                    
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(country.name)
-                            .font(.system(size: 18, weight: .semibold))
-                        Text(country.continent)
-                            .font(.caption)
-                            .foregroundColor(.gray)
+            if selectedFilter == "Państwa" {
+                
+                let grouped = Dictionary(grouping: completed, by: { $0.country })
+                
+                ForEach(grouped.keys.sorted(), id: \.self) { country in
+                    DisclosureGroup(country) {
+                        VStack(spacing: 14) {
+                            ForEach(grouped[country]!) { trip in
+                                TripCard(trip: trip)
+                            }
+                        }
+                        .padding(.top, 6)
                     }
-                    
-                    Spacer()
+                    .padding()
+                    .background(.white)
+                    .cornerRadius(14)
                 }
-                .padding()
-                .background(.white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-                .cornerRadius(18)
+            }
+            else if selectedFilter == "Kontynenty" {
+                
+                let grouped = Dictionary(grouping: completed) { trip in
+                    store.countries.first(where: { $0.name == trip.country })?.continent ?? "Inne"
+                }
+                
+                ForEach(grouped.keys.sorted(), id: \.self) { continent in
+                    DisclosureGroup(continent) {
+                        VStack(spacing: 14) {
+                            ForEach(grouped[continent]!) { trip in
+                                TripCard(trip: trip)
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                    .padding()
+                    .background(.white)
+                    .cornerRadius(14)
+                }
+            }
+            
+            else if selectedFilter == "Miasta" {
+                let allCities = Array(Set(completed.flatMap { $0.cities })).sorted() 
+                ForEach(allCities, id: \.self) { city in
+                    let tripsForCity = completed.filter { $0.cities.contains(city) }
+                    DisclosureGroup(city) {
+                        VStack(spacing: 14) {
+                            ForEach(tripsForCity) { trip in
+                                TripCard(trip: trip)
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                    .padding()
+                    .background(.white)
+                    .cornerRadius(14)
+                }
             }
         }
     }
-}
+                
+                
+        }
+    
+
 
 #Preview {
     HomeView().environmentObject(TripsStore())
