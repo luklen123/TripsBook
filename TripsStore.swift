@@ -2,7 +2,7 @@ import Foundation
 
 class TripsStore: ObservableObject {
     
-    // dane alw to z API!!!
+    //trzeba dopisac reszte panstwa
     @Published var countries: [Country] = [
         Country(name: "Hiszpania", continent: "Europa", flag: "🇪🇸", visited: false),
         Country(name: "Czechy", continent: "Europa", flag: "🇨🇿", visited: false),
@@ -16,6 +16,12 @@ class TripsStore: ObservableObject {
     // inicjalizacja
     init() {
         loadTrips()
+        updateTripStatuses()
+        
+        //odwiedzone policzone po statusach
+        DispatchQueue.main.async {
+            self.updateVisitedCountries()
+        }
     }
     
     
@@ -40,17 +46,38 @@ class TripsStore: ObservableObject {
             }
         }
         
-        // jak bez danych dodaj przypaadkowa (tylko do pokazania ze dziala)
-        self.trips = [
-            Trip(
-                country: "Japonia",
-                cities: ["Tokio", "Kioto"],
-                startDate: Date(),
-                endDate: Date().addingTimeInterval(60 * 60 * 24 * 7),
-                status: .planned,
-                notes: "",
-                photos: []
-            )
-        ]
+    }
+    
+    
+    // aktualizacja odwiedzonych krajow (dla HomeView)
+    func updateVisitedCountries() {
+        let completedCountries = Set(
+            trips.filter { $0.status == .completed }
+                .map { $0.country }
+        )
+        
+        for index in countries.indices {
+            countries[index].visited = completedCountries.contains(countries[index].name)
+        }
+    }
+    
+    
+    // automatyczna zmiana statusu podrozy
+    func updateTripStatuses() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        for index in trips.indices {
+            let start = Calendar.current.startOfDay(for: trips[index].startDate)
+            let end   = Calendar.current.startOfDay(for: trips[index].endDate)
+            
+            if end <= today {
+                trips[index].status = .completed
+            } else {
+                trips[index].status = .planned
+            } 
+        }
+        
+        saveTrips()
     }
 }
+
