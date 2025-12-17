@@ -90,13 +90,11 @@ struct AddTripView: View {
         
         let status: TripStatus
         
-        if end < today {
+        if end <= today {
             status = .completed
-        } else if start > today {
-            status = .planned
         } else {
-            status = .ongoing
-        }
+            status = .planned
+        } 
         
          if let old = existingTrip {
             if let index = store.trips.firstIndex(where: { $0.id == old.id }) {
