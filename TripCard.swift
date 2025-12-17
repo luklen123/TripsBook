@@ -1,14 +1,18 @@
 import SwiftUI
-
 struct TripCard: View {
     
     let trip: Trip
+    @EnvironmentObject var store: TripsStore   
+    
+    var flag: String {
+        store.countries.first(where: { $0.name == trip.country })?.flag ?? "🌍"
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             
             HStack {
-                Text(flagForCountry(trip.country))
+                Text(flag)
                     .font(.system(size: 38))
                 
                 Text(trip.country)
@@ -30,7 +34,6 @@ struct TripCard: View {
             }
             .font(.footnote)
             .foregroundColor(.gray)
-            
         }
         .padding()
         .background(.white)
@@ -41,28 +44,10 @@ struct TripCard: View {
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.03), radius: 3, y: 2)
     }
-}
-
-
-extension TripCard {
     
-    func flagForCountry(_ name: String) -> String {
-        let match = [
-            "Japonia": "🇯🇵",
-            "Hiszpania": "🇪🇸",
-            "Czechy": "🇨🇿",
-            "USA": "🇺🇸"
-        ]
-        return match[name] ?? "🌍"
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        return formatter.string(from: date)
     }
-    
-    func formatDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "dd.MM.yyyy"
-        return f.string(from: date)
-    }
-}
-
-#Preview {
-    TripCard(trip: TripsStore().trips.first!)
 }
