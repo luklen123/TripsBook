@@ -34,7 +34,12 @@ struct AddTripView: View {
                 
                 Section(header: Text("Kraj")) {
                     Picker("Wybierz kraj", selection: $selectedCountry) {
-                        ForEach(store.countries.map{$0.name}, id: \.self) { name in
+                        ForEach(
+                            store.countries
+                                .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+                                .map { $0.name },
+                            id: \.self
+                        ) { name in
                             Text(name)
                         }
                     }
@@ -122,9 +127,9 @@ struct AddTripView: View {
         store.saveTrips()
     }
     
+    
 }
 
 #Preview {
     AddTripView().environmentObject(TripsStore())
 }
-
